@@ -54,10 +54,10 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="lineEdit_2"/>
+         <widget class="QLineEdit" name="lineUpdateDirectoryPath"/>
         </item>
         <item>
-         <widget class="QToolButton" name="toolButton_2">
+         <widget class="QToolButton" name="btnBrowseUpdatePath">
           <property name="text">
            <string>...</string>
           </property>
@@ -68,7 +68,7 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_6">
         <item>
-         <widget class="QTreeView" name="treeView_2"/>
+         <widget class="QTreeView" name="treeViewListFiles"/>
         </item>
        </layout>
       </item>

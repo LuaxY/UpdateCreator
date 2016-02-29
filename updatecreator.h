@@ -17,6 +17,9 @@ public:
 
 private:
     Ui::UpdateCreator *ui;
+
+private slots:
+    void onClickBrowseUpdatePath();
 };
 
 #endif // UPDATECREATOR_H
