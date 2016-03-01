@@ -23,7 +23,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>1</number>
+    <number>2</number>
    </property>
    <widget class="QWidget" name="tabSummary">
     <attribute name="title">
@@ -32,7 +32,7 @@
    </widget>
    <widget class="QWidget" name="tabCreator">
     <attribute name="title">
-     <string>Creator</string>
+     <string>Create</string>
     </attribute>
     <widget class="QWidget" name="verticalLayoutWidget">
      <property name="geometry">
@@ -102,8 +102,95 @@
    </widget>
    <widget class="QWidget" name="tabConfig">
     <attribute name="title">
-     <string>Configuration</string>
+     <string>Configure</string>
     </attribute>
+    <widget class="QWidget" name="formLayoutWidget">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>241</width>
+       <height>201</height>
+      </rect>
+     </property>
+     <layout class="QFormLayout" name="formLayout">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>CDN :</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="lineEdit">
+        <property name="text">
+         <string>arkalys.s3.amazonaws.com</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Key :</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLineEdit" name="lineEdit_2">
+        <property name="text">
+         <string>MySuperSecretKey</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Channel :</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QComboBox" name="comboBox">
+        <item>
+         <property name="text">
+          <string>Release</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Beta</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Alpha</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QCommandLinkButton" name="commandLinkButton">
+        <property name="text">
+         <string>Apply</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_6">
+        <property name="text">
+         <string>Upload :</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="lineEdit_3">
+        <property name="text">
+         <string>admin.arkalys.com/aws.php</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
    </widget>
   </widget>
  </widget>

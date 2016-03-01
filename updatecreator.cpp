@@ -6,6 +6,9 @@
 #include <QFileSystemModel>
 #include <QDebug>
 
+#include "aws/s3/S3Client.h"
+#include "aws/s3/model/GetObjectRequest.h"
+
 UpdateCreator::UpdateCreator(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::UpdateCreator)
@@ -13,6 +16,25 @@ UpdateCreator::UpdateCreator(QWidget *parent) :
     ui->setupUi(this);
 
     connect(ui->btnBrowseUpdatePath, SIGNAL(clicked()), this, SLOT(onClickBrowseUpdatePath()));
+
+    Aws::S3::S3Client s3Client;
+
+    Aws::S3::Model::GetObjectRequest getObjectRequest;
+    getObjectRequest.SetBucket("araklys");
+    getObjectRequest.SetKey("1/files/test");
+    /*getObjectRequest.SetResponseStreamFactory(
+        [](){
+            return Aws::New(ALLOCATION_TAG, DOWNLOADED_FILENAME, std::ios_base::out | std::ios_base::in | std::ios_base::trunc);
+        });*/
+    auto getObjectOutcome = s3Client.GetObject(getObjectRequest);
+    if(getObjectOutcome.IsSuccess())
+    {
+        qDebug() << "File downloaded from S3 to location " << getObjectOutcome.GetResult().GetBody();
+    }
+    else
+    {
+        qDebug() << "File download failed from s3 with error " << getObjectOutcome.GetError().GetMessage().c_str();
+    }
 }
 
 UpdateCreator::~UpdateCreator()
