@@ -2,6 +2,7 @@
 #define UPDATECREATOR_H
 
 #include <QWidget>
+#include <QSettings>
 
 namespace Ui {
 class UpdateCreator;
@@ -16,10 +17,12 @@ public:
     ~UpdateCreator();
 
 private:
-    Ui::UpdateCreator *ui;
+    Ui::UpdateCreator* ui;
+    QSettings* settings;
 
 private slots:
-    void onClickBrowseUpdatePath();
+    void onClickBrowseUpdatePathButton();
+    void onClickApplyConfigurationButton();
 };
 
 #endif // UPDATECREATOR_H

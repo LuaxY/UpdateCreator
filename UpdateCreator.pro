@@ -20,8 +20,8 @@ HEADERS  += updatecreator.h
 
 FORMS    += updatecreator.ui
 
-LIBS += -L$$PWD/AWS/aws-cpp-sdk-core/ -laws-cpp-sdk-core
-LIBS += -L$$PWD/AWS/aws-cpp-sdk-s3/ -laws-cpp-sdk-s3
+#LIBS += -L$$PWD/AWS/aws-cpp-sdk-core/ -laws-cpp-sdk-core
+#LIBS += -L$$PWD/AWS/aws-cpp-sdk-s3/ -laws-cpp-sdk-s3
 
-INCLUDEPATH += $$PWD/AWS/aws-cpp-sdk-core/include
-INCLUDEPATH += $$PWD/AWS/aws-cpp-sdk-s3/include
+#INCLUDEPATH += $$PWD/AWS/aws-cpp-sdk-core/include
+#INCLUDEPATH += $$PWD/AWS/aws-cpp-sdk-s3/include

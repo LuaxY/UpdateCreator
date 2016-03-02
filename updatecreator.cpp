@@ -4,10 +4,9 @@
 #include <QFileDialog>
 #include <QDirIterator>
 #include <QFileSystemModel>
-#include <QDebug>
+#include <QMessageBox>
 
-#include "aws/s3/S3Client.h"
-#include "aws/s3/model/GetObjectRequest.h"
+#include <QDebug>
 
 UpdateCreator::UpdateCreator(QWidget *parent) :
     QWidget(parent),
@@ -15,26 +14,17 @@ UpdateCreator::UpdateCreator(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    connect(ui->btnBrowseUpdatePath, SIGNAL(clicked()), this, SLOT(onClickBrowseUpdatePath()));
+    connect(ui->BrowseUpdatePathButton, SIGNAL(clicked()), this, SLOT(onClickBrowseUpdatePathButton()));
+    connect(ui->ApplyConfigurationButton, SIGNAL(clicked()), this, SLOT(onClickApplyConfigurationButton()));
 
-    Aws::S3::S3Client s3Client;
+    settings = new QSettings("config.ini", QSettings::IniFormat);
 
-    Aws::S3::Model::GetObjectRequest getObjectRequest;
-    getObjectRequest.SetBucket("araklys");
-    getObjectRequest.SetKey("1/files/test");
-    /*getObjectRequest.SetResponseStreamFactory(
-        [](){
-            return Aws::New(ALLOCATION_TAG, DOWNLOADED_FILENAME, std::ios_base::out | std::ios_base::in | std::ios_base::trunc);
-        });*/
-    auto getObjectOutcome = s3Client.GetObject(getObjectRequest);
-    if(getObjectOutcome.IsSuccess())
-    {
-        qDebug() << "File downloaded from S3 to location " << getObjectOutcome.GetResult().GetBody();
-    }
-    else
-    {
-        qDebug() << "File download failed from s3 with error " << getObjectOutcome.GetError().GetMessage().c_str();
-    }
+    ui->CDNLinkLine->setText(settings->value("updates/cdn").toString());
+    ui->UploadLinkLine->setText(settings->value("updates/upload").toString());
+    ui->ChannelComboBox->setCurrentText(settings->value("updates/channel").toString());
+
+    ui->AWSPublicKeyLine->setText(settings->value("aws/public").toString());
+    ui->AWSPrivateKeyLine->setText(settings->value("aws/private").toString());
 }
 
 UpdateCreator::~UpdateCreator()
@@ -42,22 +32,35 @@ UpdateCreator::~UpdateCreator()
     delete ui;
 }
 
-void UpdateCreator::onClickBrowseUpdatePath()
+void UpdateCreator::onClickBrowseUpdatePathButton()
 {
-    QString dir = QFileDialog::getExistingDirectory(this, tr("Open Update Directory"), ui->lineUpdateDirectoryPath->text(), QFileDialog::ShowDirsOnly| QFileDialog::DontResolveSymlinks);
-    ui->lineUpdateDirectoryPath->setText(dir);
+    QString dir = QFileDialog::getExistingDirectory(this, tr("Open Update Directory"), ui->UpdateDirectoryPathLine->text(), QFileDialog::ShowDirsOnly| QFileDialog::DontResolveSymlinks);
+    ui->UpdateDirectoryPathLine->setText(dir);
 
     QDirIterator it(dir, QStringList() << "*.*", QDir::Files, QDirIterator::Subdirectories);
     QFileSystemModel* model = new QFileSystemModel;
 
     model->setRootPath(dir);
-    ui->treeViewListFiles->setModel(model);
-    ui->treeViewListFiles->setRootIndex(model->index(dir));
+    ui->ListFilesTreeView->setModel(model);
+    ui->ListFilesTreeView->setRootIndex(model->index(dir));
 
     /*while (it.hasNext())
     {
-        ui->treeViewListFiles->ins
+        ui->ListFilesTreeView->ins
         qDebug() << it.next();
     }*/
+}
 
+void UpdateCreator::onClickApplyConfigurationButton()
+{
+    settings->setValue("updates/cdn",     ui->CDNLinkLine->text());
+    settings->setValue("updates/upload",  ui->UploadLinkLine->text());
+    settings->setValue("updates/channel", ui->ChannelComboBox->currentText());
+
+    settings->setValue("aws/public",  ui->AWSPublicKeyLine->text());
+    settings->setValue("aws/private", ui->AWSPrivateKeyLine->text());
+
+    settings->sync();
+
+    QMessageBox::information(this, "Configuration saved", "Configuration was saved in config.ini file");
 }
