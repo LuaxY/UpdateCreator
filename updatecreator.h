@@ -19,6 +19,7 @@ public:
 private:
     Ui::UpdateCreator* ui;
     QSettings* settings;
+    int fileCount = 0;
 
 private slots:
     void onClickBrowseUpdatePathButton();

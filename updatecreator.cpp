@@ -49,7 +49,13 @@ void UpdateCreator::onClickBrowseUpdatePathButton()
     ui->ListFilesTreeView->setModel(model);
     ui->ListFilesTreeView->setRootIndex(model->index(dir));
 
+    while (it.hasNext())
+    {
+        it.next();
+        fileCount++;
+    }
 
+    fileCount += 2; // +2 for update.json and info.json
 }
 
 void UpdateCreator::onClickDeployUpdateButton()
@@ -61,6 +67,8 @@ void UpdateCreator::onClickDeployUpdateButton()
     QJsonArray files;
 
     json["version"] = 0;
+
+    int i = 0;
 
     while (it.hasNext())
     {
@@ -82,12 +90,15 @@ void UpdateCreator::onClickDeployUpdateButton()
 
         QJsonObject fileObject;
 
-        fileObject["name"] = filePath;²
+        fileObject["name"] = filePath;
         fileObject["md5"] = md5;
 
         files.append(fileObject);
 
         // TODO: upload file
+
+        i++;
+        ui->ProcessProgressBar->setValue(i * 100 / fileCount);
     }
 
     json["files"] = files;
@@ -96,7 +107,13 @@ void UpdateCreator::onClickDeployUpdateButton()
 
     // TODO: upload updates.json saveDoc.toJson()
 
+    i++;
+    ui->ProcessProgressBar->setValue(i * 100 / fileCount);
+
     // TODO: update info.json
+
+    i++;
+    ui->ProcessProgressBar->setValue(i * 100 / fileCount);
 }
 
 void UpdateCreator::onClickApplyConfigurationButton()
