@@ -5,6 +5,10 @@
 #include <QDirIterator>
 #include <QFileSystemModel>
 #include <QMessageBox>
+#include <QCryptographicHash>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
 
 #include <QDebug>
 
@@ -44,11 +48,44 @@ void UpdateCreator::onClickBrowseUpdatePathButton()
     ui->ListFilesTreeView->setModel(model);
     ui->ListFilesTreeView->setRootIndex(model->index(dir));
 
-    /*while (it.hasNext())
+    QJsonObject json;
+    QJsonArray files;
+
+    json["version"] = 0;
+
+    while (it.hasNext())
     {
-        ui->ListFilesTreeView->ins
-        qDebug() << it.next();
-    }*/
+        QString path = it.next();
+        QFile file(path);
+
+        if(!file.open(QIODevice::ReadOnly))
+        {
+            continue;
+        }
+
+        QCryptographicHash hash(QCryptographicHash::Md5);
+        hash.addData(file.readAll());
+        file.close();
+
+        QString filePath = path.remove(dir + "/");
+        QString md5 = hash.result().toHex().data();
+
+        QJsonObject fileObject;
+
+        fileObject["name"] = filePath;
+        fileObject["md5"] = md5;
+
+        files.append(fileObject);
+    }
+
+    json["files"] = files;
+
+    QFile saveFile("update.json");
+    QJsonDocument saveDoc(json);
+
+    saveFile.open(QIODevice::WriteOnly);
+    saveFile.write(saveDoc.toJson());
+    saveFile.close();
 }
 
 void UpdateCreator::onClickApplyConfigurationButton()
