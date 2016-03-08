@@ -16,6 +16,7 @@
 #include <QDebug>
 
 #define BOUND "margin"
+#define VERSION 0
 
 UpdateCreator::UpdateCreator(QWidget *parent) :
     QWidget(parent),
@@ -71,7 +72,7 @@ void UpdateCreator::onClickDeployUpdateButton()
     QJsonObject json;
     QJsonArray files;
 
-    json["version"] = 0;
+    json["version"] = VERSION;
 
     int i = 0;
 
@@ -90,18 +91,18 @@ void UpdateCreator::onClickDeployUpdateButton()
         hash.addData(data);
         file.close();
 
-        QString filePath = path;
+        QString fileName = path;
         QString md5 = hash.result().toHex().data();
         QJsonObject fileObject;
 
-        filePath.remove(dir + "/");
+        fileName.remove(dir + "/");
 
-        fileObject["name"] = filePath;
+        fileObject["name"] = fileName;
         fileObject["md5"] = md5;
 
         files.append(fileObject);
 
-        uploadFileToCDN(path, filePath);
+        uploadFileToCDN(buildPostRequest(fileName, data));
 
         i++;
         ui->ProcessProgressBar->setValue(i * 100 / fileCount);
@@ -110,8 +111,7 @@ void UpdateCreator::onClickDeployUpdateButton()
     json["files"] = files;
 
     QJsonDocument saveDoc(json);
-
-    // TODO: upload updates.json saveDoc.toJson()
+    uploadFileToCDN(buildPostRequest("update.json", saveDoc.toJson()));
 
     i++;
     ui->ProcessProgressBar->setValue(i * 100 / fileCount);
@@ -136,10 +136,8 @@ void UpdateCreator::onClickApplyConfigurationButton()
     QMessageBox::information(this, "Configuration saved", "Configuration was saved in config.ini file");
 }
 
-void UpdateCreator::uploadFileToCDN(QString path, QString name)
+void UpdateCreator::uploadFileToCDN(QByteArray data)
 {
-    QByteArray data = buildPostRequest(path, name);
-
     QUrl url = QUrl(ui->UploadLinkLine->text());
     QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
 
@@ -154,11 +152,9 @@ void UpdateCreator::uploadFileToCDN(QString path, QString name)
     QEventLoop loop;
     connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
     loop.exec();
-
-    qDebug() << reply->readAll();
 }
 
-QByteArray UpdateCreator::buildPostRequest(QString path, QString name)
+QByteArray UpdateCreator::buildPostRequest(QString name, QByteArray fileData)
 {
     QString bound = BOUND;
     QByteArray data;
@@ -166,7 +162,7 @@ QByteArray UpdateCreator::buildPostRequest(QString path, QString name)
     // Version
     data.append("--" + bound + "\r\n");
     data.append("Content-Disposition: form-data; name=\"version\"\r\n\r\n");
-    data.append("0\r\n");
+    data.append(QString::number(VERSION) + "\r\n");
 
     // AWS Public Key
     data.append("--" + bound + "\r\n");
@@ -189,23 +185,12 @@ QByteArray UpdateCreator::buildPostRequest(QString path, QString name)
     // File
     data.append("--" + bound + "\r\n");
     data.append("Content-Disposition: form-data; name=\"file\"; filename=\"");
-    data.append(path);
+    data.append(name);
     data.append("\"\r\n");
     data.append("Content-Type: application/octet-stream\r\n\r\n");
-
-    QFile file(path);
-
-    if (!file.open(QIODevice::ReadOnly))
-    {
-        return data;
-    }
-
-    data.append(file.readAll());
-
+    data.append(fileData);
     data.append("\r\n");
     data.append("--" + bound + "--\r\n");
-
-    file.close();
 
     return data;
 }

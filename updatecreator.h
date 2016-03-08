@@ -22,8 +22,8 @@ private:
     QSettings* settings;
     int fileCount = 0;
 
-    void uploadFileToCDN(QString path, QString name);
-    QByteArray buildPostRequest(QString path, QString name);
+    void uploadFileToCDN(QByteArray data);
+    QByteArray buildPostRequest(QString name, QByteArray fileData);
 
 private slots:
     void onClickBrowseUpdatePathButton();
