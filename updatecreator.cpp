@@ -38,11 +38,6 @@ UpdateCreator::UpdateCreator(QWidget *parent) :
     ui->AWSPrivateKeyLine->setText(settings->value("aws/private").toString());
 
     version = getCurrentVersion();
-
-    if (version == 0)
-    {
-        ui->tabs->setCurrentIndex(2);
-    }
 }
 
 UpdateCreator::~UpdateCreator()
@@ -74,6 +69,15 @@ void UpdateCreator::onClickBrowseUpdatePathButton()
 void UpdateCreator::onClickDeployUpdateButton()
 {
     QString dir = ui->UpdateDirectoryPathLine->text();
+
+    if (dir == "")
+    {
+        QMessageBox::warning(this, "Invalid update directory", "Please select valid update directory");
+        return;
+    }
+
+    ui->DeployUpdateButton->setEnabled(false);
+
     QDirIterator it(dir, QStringList() << "*.*", QDir::Files, QDirIterator::Subdirectories);
 
     QJsonObject updateJson;
@@ -132,16 +136,13 @@ void UpdateCreator::onClickDeployUpdateButton()
 
     i++;
     ui->ProcessProgressBar->setValue(i * 100 / fileCount);
+
+    ui->DeployUpdateButton->setEnabled(true);
 }
 
 void UpdateCreator::onClickApplyConfigurationButton()
 {
     version = getCurrentVersion();
-
-    if (version == 0)
-    {
-        return;
-    }
 
     settings->setValue("updates/cdn",     ui->CDNLinkLine->text());
     settings->setValue("updates/upload",  ui->UploadLinkLine->text());
