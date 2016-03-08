@@ -19,6 +19,7 @@ UpdateCreator::UpdateCreator(QWidget *parent) :
     ui->setupUi(this);
 
     connect(ui->BrowseUpdatePathButton, SIGNAL(clicked()), this, SLOT(onClickBrowseUpdatePathButton()));
+    connect(ui->DeployUpdateButton, SIGNAL(clicked()), this, SLOT(onClickDeployUpdateButton()));
     connect(ui->ApplyConfigurationButton, SIGNAL(clicked()), this, SLOT(onClickApplyConfigurationButton()));
 
     settings = new QSettings("config.ini", QSettings::IniFormat);
@@ -48,6 +49,14 @@ void UpdateCreator::onClickBrowseUpdatePathButton()
     ui->ListFilesTreeView->setModel(model);
     ui->ListFilesTreeView->setRootIndex(model->index(dir));
 
+
+}
+
+void UpdateCreator::onClickDeployUpdateButton()
+{
+    QString dir = ui->UpdateDirectoryPathLine->text();
+    QDirIterator it(dir, QStringList() << "*.*", QDir::Files, QDirIterator::Subdirectories);
+
     QJsonObject json;
     QJsonArray files;
 
@@ -64,7 +73,8 @@ void UpdateCreator::onClickBrowseUpdatePathButton()
         }
 
         QCryptographicHash hash(QCryptographicHash::Md5);
-        hash.addData(file.readAll());
+        QByteArray data = file.readAll();
+        hash.addData(data);
         file.close();
 
         QString filePath = path.remove(dir + "/");
@@ -72,20 +82,21 @@ void UpdateCreator::onClickBrowseUpdatePathButton()
 
         QJsonObject fileObject;
 
-        fileObject["name"] = filePath;
+        fileObject["name"] = filePath;²
         fileObject["md5"] = md5;
 
         files.append(fileObject);
+
+        // TODO: upload file
     }
 
     json["files"] = files;
 
-    QFile saveFile("update.json");
     QJsonDocument saveDoc(json);
 
-    saveFile.open(QIODevice::WriteOnly);
-    saveFile.write(saveDoc.toJson());
-    saveFile.close();
+    // TODO: upload updates.json saveDoc.toJson()
+
+    // TODO: update info.json
 }
 
 void UpdateCreator::onClickApplyConfigurationButton()

@@ -22,6 +22,7 @@ private:
 
 private slots:
     void onClickBrowseUpdatePathButton();
+    void onClickDeployUpdateButton();
     void onClickApplyConfigurationButton();
 };
 
