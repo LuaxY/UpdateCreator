@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QSettings>
+#include <QByteArray>
 
 namespace Ui {
 class UpdateCreator;
@@ -20,6 +21,9 @@ private:
     Ui::UpdateCreator* ui;
     QSettings* settings;
     int fileCount = 0;
+
+    void uploadFileToCDN(QString path, QString name);
+    QByteArray buildPostRequest(QString path, QString name);
 
 private slots:
     void onClickBrowseUpdatePathButton();

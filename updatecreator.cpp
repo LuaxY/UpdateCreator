@@ -9,8 +9,13 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
 
 #include <QDebug>
+
+#define BOUND "margin"
 
 UpdateCreator::UpdateCreator(QWidget *parent) :
     QWidget(parent),
@@ -85,17 +90,18 @@ void UpdateCreator::onClickDeployUpdateButton()
         hash.addData(data);
         file.close();
 
-        QString filePath = path.remove(dir + "/");
+        QString filePath = path;
         QString md5 = hash.result().toHex().data();
-
         QJsonObject fileObject;
+
+        filePath.remove(dir + "/");
 
         fileObject["name"] = filePath;
         fileObject["md5"] = md5;
 
         files.append(fileObject);
 
-        // TODO: upload file
+        uploadFileToCDN(path, filePath);
 
         i++;
         ui->ProcessProgressBar->setValue(i * 100 / fileCount);
@@ -128,4 +134,78 @@ void UpdateCreator::onClickApplyConfigurationButton()
     settings->sync();
 
     QMessageBox::information(this, "Configuration saved", "Configuration was saved in config.ini file");
+}
+
+void UpdateCreator::uploadFileToCDN(QString path, QString name)
+{
+    QByteArray data = buildPostRequest(path, name);
+
+    QUrl url = QUrl(ui->UploadLinkLine->text());
+    QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
+
+    QString bound = BOUND;
+
+    QNetworkRequest request(url);
+    request.setRawHeader(QByteArray("Content-Type"), QByteArray("multipart/form-data; boundary=" + bound.toLocal8Bit()));
+    request.setRawHeader(QByteArray("Content-Length"), QString::number(data.length()).toLocal8Bit());
+
+    QNetworkReply* reply = networkManager->post(request, data);
+
+    QEventLoop loop;
+    connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+    loop.exec();
+
+    qDebug() << reply->readAll();
+}
+
+QByteArray UpdateCreator::buildPostRequest(QString path, QString name)
+{
+    QString bound = BOUND;
+    QByteArray data;
+
+    // Version
+    data.append("--" + bound + "\r\n");
+    data.append("Content-Disposition: form-data; name=\"version\"\r\n\r\n");
+    data.append("0\r\n");
+
+    // AWS Public Key
+    data.append("--" + bound + "\r\n");
+    data.append("Content-Disposition: form-data; name=\"public\"\r\n\r\n");
+    data.append(ui->AWSPublicKeyLine->text());
+    data.append("\r\n");
+
+    // AWS Private Key
+    data.append("--" + bound + "\r\n");
+    data.append("Content-Disposition: form-data; name=\"private\"\r\n\r\n");
+    data.append(ui->AWSPrivateKeyLine->text());
+    data.append("\r\n");
+
+    // File name
+    data.append("--" + bound + "\r\n");
+    data.append("Content-Disposition: form-data; name=\"path\"\r\n\r\n");
+    data.append(name);
+    data.append("\r\n");
+
+    // File
+    data.append("--" + bound + "\r\n");
+    data.append("Content-Disposition: form-data; name=\"file\"; filename=\"");
+    data.append(path);
+    data.append("\"\r\n");
+    data.append("Content-Type: application/octet-stream\r\n\r\n");
+
+    QFile file(path);
+
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        return data;
+    }
+
+    data.append(file.readAll());
+
+    data.append("\r\n");
+    data.append("--" + bound + "--\r\n");
+
+    file.close();
+
+    return data;
 }
