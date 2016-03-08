@@ -21,7 +21,9 @@ private:
     Ui::UpdateCreator* ui;
     QSettings* settings;
     int fileCount = 0;
+    int version = 0;
 
+    int getCurrentVersion();
     void uploadFileToCDN(QByteArray data);
     QByteArray buildPostRequest(QString name, QByteArray fileData);
 

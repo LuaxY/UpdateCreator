@@ -36,6 +36,13 @@ UpdateCreator::UpdateCreator(QWidget *parent) :
 
     ui->AWSPublicKeyLine->setText(settings->value("aws/public").toString());
     ui->AWSPrivateKeyLine->setText(settings->value("aws/private").toString());
+
+    version = getCurrentVersion();
+
+    if (version == 0)
+    {
+        ui->tabs->setCurrentIndex(2);
+    }
 }
 
 UpdateCreator::~UpdateCreator()
@@ -69,10 +76,12 @@ void UpdateCreator::onClickDeployUpdateButton()
     QString dir = ui->UpdateDirectoryPathLine->text();
     QDirIterator it(dir, QStringList() << "*.*", QDir::Files, QDirIterator::Subdirectories);
 
-    QJsonObject json;
+    QJsonObject updateJson;
     QJsonArray files;
 
-    json["version"] = VERSION;
+    version++;
+
+    updateJson["version"] = version;
 
     int i = 0;
 
@@ -102,21 +111,24 @@ void UpdateCreator::onClickDeployUpdateButton()
 
         files.append(fileObject);
 
-        uploadFileToCDN(buildPostRequest(fileName, data));
+        uploadFileToCDN(buildPostRequest(QString("%1/files/%2").arg(version).arg(fileName), data));
 
         i++;
         ui->ProcessProgressBar->setValue(i * 100 / fileCount);
     }
 
-    json["files"] = files;
+    updateJson["files"] = files;
 
-    QJsonDocument saveDoc(json);
-    uploadFileToCDN(buildPostRequest("update.json", saveDoc.toJson()));
+    QJsonDocument updateDoc(updateJson);
+    uploadFileToCDN(buildPostRequest(QString("%1/update.json").arg(version), updateDoc.toJson()));
 
     i++;
     ui->ProcessProgressBar->setValue(i * 100 / fileCount);
 
-    // TODO: update info.json
+    QJsonObject infoJson;
+    infoJson["version"] = version;
+    QJsonDocument infoDoc(infoJson);
+    uploadFileToCDN(buildPostRequest("info.json", infoDoc.toJson()));
 
     i++;
     ui->ProcessProgressBar->setValue(i * 100 / fileCount);
@@ -124,6 +136,13 @@ void UpdateCreator::onClickDeployUpdateButton()
 
 void UpdateCreator::onClickApplyConfigurationButton()
 {
+    version = getCurrentVersion();
+
+    if (version == 0)
+    {
+        return;
+    }
+
     settings->setValue("updates/cdn",     ui->CDNLinkLine->text());
     settings->setValue("updates/upload",  ui->UploadLinkLine->text());
     settings->setValue("updates/channel", ui->ChannelComboBox->currentText());
@@ -134,6 +153,31 @@ void UpdateCreator::onClickApplyConfigurationButton()
     settings->sync();
 
     QMessageBox::information(this, "Configuration saved", "Configuration was saved in config.ini file");
+}
+
+int UpdateCreator::getCurrentVersion()
+{
+    QNetworkRequest request;
+    QNetworkAccessManager networkManager;
+
+    request.setUrl(ui->CDNLinkLine->text() + "/info.json");
+    QNetworkReply* reply = networkManager.get(request);
+
+    QEventLoop loop;
+    connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+    loop.exec();
+
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(reply->readAll());
+
+    if (jsonDoc.isNull())
+    {
+        QMessageBox::warning(this, "Invalid CDN url", "CDN url is invalid or not set, please check configure tab");
+        return 0;
+    }
+
+    QJsonObject json = jsonDoc.object();
+
+    return json["version"].toInt();
 }
 
 void UpdateCreator::uploadFileToCDN(QByteArray data)
@@ -162,7 +206,7 @@ QByteArray UpdateCreator::buildPostRequest(QString name, QByteArray fileData)
     // Version
     data.append("--" + bound + "\r\n");
     data.append("Content-Disposition: form-data; name=\"version\"\r\n\r\n");
-    data.append(QString::number(VERSION) + "\r\n");
+    data.append(QString::number(version) + "\r\n");
 
     // AWS Public Key
     data.append("--" + bound + "\r\n");
