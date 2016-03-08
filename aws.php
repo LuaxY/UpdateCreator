@@ -19,7 +19,7 @@ if ($_POST)
     ]);
 
     $r = $s3->putObject([
-        'Bucket' => 'arkalys',
+        'Bucket' => $_POST['bucket'],
         'Key'    => $_POST['path'],
         'Body'   => $fileContent,
         'ACL'    => 'public-read',

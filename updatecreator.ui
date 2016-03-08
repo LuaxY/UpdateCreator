@@ -110,7 +110,7 @@
        <x>10</x>
        <y>10</y>
        <width>331</width>
-       <height>101</height>
+       <height>125</height>
       </rect>
      </property>
      <property name="title">
@@ -122,7 +122,7 @@
         <x>10</x>
         <y>20</y>
         <width>311</width>
-        <height>74</height>
+        <height>100</height>
        </rect>
       </property>
       <layout class="QFormLayout" name="formLayout">
@@ -154,14 +154,14 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
+       <item row="3" column="0">
         <widget class="QLabel" name="label_2">
          <property name="text">
           <string>Channel :</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="1">
+       <item row="3" column="1">
         <widget class="QComboBox" name="ChannelComboBox">
          <item>
           <property name="text">
@@ -180,6 +180,16 @@
          </item>
         </widget>
        </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Bucket :</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLineEdit" name="BucketNameLine"/>
+       </item>
       </layout>
      </widget>
     </widget>
@@ -187,7 +197,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>120</y>
+       <y>140</y>
        <width>331</width>
        <height>81</height>
       </rect>
@@ -240,7 +250,7 @@
      <property name="geometry">
       <rect>
        <x>267</x>
-       <y>210</y>
+       <y>224</y>
        <width>75</width>
        <height>23</height>
       </rect>

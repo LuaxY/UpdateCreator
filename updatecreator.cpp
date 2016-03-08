@@ -32,6 +32,7 @@ UpdateCreator::UpdateCreator(QWidget *parent) :
 
     ui->CDNLinkLine->setText(settings->value("updates/cdn").toString());
     ui->UploadLinkLine->setText(settings->value("updates/upload").toString());
+    ui->BucketNameLine->setText(settings->value("updates/bucket").toString());
     ui->ChannelComboBox->setCurrentText(settings->value("updates/channel").toString());
 
     ui->AWSPublicKeyLine->setText(settings->value("aws/public").toString());
@@ -146,6 +147,7 @@ void UpdateCreator::onClickApplyConfigurationButton()
 
     settings->setValue("updates/cdn",     ui->CDNLinkLine->text());
     settings->setValue("updates/upload",  ui->UploadLinkLine->text());
+    settings->setValue("updates/bucket",  ui->BucketNameLine->text());
     settings->setValue("updates/channel", ui->ChannelComboBox->currentText());
 
     settings->setValue("aws/public",  ui->AWSPublicKeyLine->text());
@@ -219,6 +221,12 @@ QByteArray UpdateCreator::buildPostRequest(QString name, QByteArray fileData)
     data.append("--" + bound + "\r\n");
     data.append("Content-Disposition: form-data; name=\"private\"\r\n\r\n");
     data.append(ui->AWSPrivateKeyLine->text());
+    data.append("\r\n");
+
+    // Bucket name
+    data.append("--" + bound + "\r\n");
+    data.append("Content-Disposition: form-data; name=\"bucket\"\r\n\r\n");
+    data.append(ui->BucketNameLine->text());
     data.append("\r\n");
 
     // File name
