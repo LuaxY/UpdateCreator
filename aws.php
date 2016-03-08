@@ -1,15 +1,22 @@
 <?php
 
-if (@$_POST['key'] == "zad7fdhopjkb5s4za8e4fs")
+if ($_POST)
 {
-    $fileName = $_FILES['file']['name'];
+    $aws_public_key = $_POST['public'];
+    $aws_private_key = $_POST['private'];
+
+    $fileName = $_POST['path'];
     $fileContent = file_get_contents($_FILES['file']['tmp_name']);
 
     require 'vendor/autoload.php';
 
     $s3 = new Aws\S3\S3Client([
-        'version' => 'latest',
-        'region'  => 'eu-central-1'
+        'version'     => 'latest',
+        'region'      => 'eu-central-1',
+        'credentials' => [
+            'key'    => $aws_public_key,
+            'secret' => $aws_private_key,
+        ]
     ]);
 
     $r = $s3->putObject([
@@ -23,10 +30,3 @@ if (@$_POST['key'] == "zad7fdhopjkb5s4za8e4fs")
 }
 
 ?>
-
-<form method="POST" enctype="multipart/form-data">
-    Version : <input type="text" name="version" value="1"><br>
-    Key : <input type="text" name="key" value="zad7fdhopjkb5s4za8e4fs"><br>
-    File : <input type="file" name="file"><br>
-    <input type="submit">
-</form>
