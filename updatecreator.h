@@ -4,6 +4,8 @@
 #include <QWidget>
 #include <QSettings>
 #include <QByteArray>
+#include <QNetworkAccessManager>
+#include <QFileSystemModel>
 
 namespace Ui {
 class UpdateCreator;
@@ -24,8 +26,11 @@ private:
     int version = 0;
 
     int getCurrentVersion();
+    void uploadFileToCDN(QString name, QString filePath);
     void uploadFileToCDN(QByteArray data);
     QByteArray buildPostRequest(QString name, QByteArray fileData);
+    QNetworkAccessManager* networkManager;
+    QFileSystemModel* model;
 
 private slots:
     void onClickBrowseUpdatePathButton();

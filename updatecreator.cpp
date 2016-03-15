@@ -3,15 +3,15 @@
 
 #include <QFileDialog>
 #include <QDirIterator>
-#include <QFileSystemModel>
 #include <QMessageBox>
 #include <QCryptographicHash>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
+#include <QHttpMultiPart>
+#include <QHttpPart>
 
 #include <QDebug>
 
@@ -23,6 +23,8 @@ UpdateCreator::UpdateCreator(QWidget *parent) :
     ui(new Ui::UpdateCreator)
 {
     ui->setupUi(this);
+
+    networkManager = new QNetworkAccessManager(this);
 
     connect(ui->BrowseUpdatePathButton, SIGNAL(clicked()), this, SLOT(onClickBrowseUpdatePathButton()));
     connect(ui->DeployUpdateButton, SIGNAL(clicked()), this, SLOT(onClickDeployUpdateButton()));
@@ -44,6 +46,8 @@ UpdateCreator::UpdateCreator(QWidget *parent) :
 UpdateCreator::~UpdateCreator()
 {
     delete ui;
+    delete networkManager;
+    delete model;
 }
 
 void UpdateCreator::onClickBrowseUpdatePathButton()
@@ -52,7 +56,7 @@ void UpdateCreator::onClickBrowseUpdatePathButton()
     ui->UpdateDirectoryPathLine->setText(dir);
 
     QDirIterator it(dir, QStringList() << "*.*", QDir::Files, QDirIterator::Subdirectories);
-    QFileSystemModel* model = new QFileSystemModel;
+    model = new QFileSystemModel;
 
     model->setRootPath(dir);
     ui->ListFilesTreeView->setModel(model);
@@ -84,6 +88,7 @@ void UpdateCreator::onClickDeployUpdateButton()
     QJsonObject updateJson;
     QJsonArray files;
 
+    version = getCurrentVersion();
     version++;
 
     updateJson["version"] = version;
@@ -116,7 +121,10 @@ void UpdateCreator::onClickDeployUpdateButton()
 
         files.append(fileObject);
 
-        uploadFileToCDN(buildPostRequest(QString("%1/files/%2").arg(version).arg(fileName), data));
+        qDebug() << fileName;
+
+        //uploadFileToCDN(QString("%1/files/%2").arg(version).arg(fileName), path);
+        //uploadFileToCDN(buildPostRequest(QString("%1/files/%2").arg(version).arg(fileName), data));
 
         i++;
         ui->ProcessProgressBar->setValue(i * 100 / fileCount);
@@ -133,7 +141,7 @@ void UpdateCreator::onClickDeployUpdateButton()
     QJsonObject infoJson;
     infoJson["version"] = version;
     QJsonDocument infoDoc(infoJson);
-    uploadFileToCDN(buildPostRequest("info.json", infoDoc.toJson()));
+    //uploadFileToCDN(buildPostRequest("info.json", infoDoc.toJson()));
 
     i++;
     ui->ProcessProgressBar->setValue(i * 100 / fileCount);
@@ -161,10 +169,9 @@ void UpdateCreator::onClickApplyConfigurationButton()
 int UpdateCreator::getCurrentVersion()
 {
     QNetworkRequest request;
-    QNetworkAccessManager networkManager;
 
     request.setUrl(ui->CDNLinkLine->text() + "/info.json");
-    QNetworkReply* reply = networkManager.get(request);
+    QNetworkReply* reply = networkManager->get(request);
 
     QEventLoop loop;
     connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
@@ -180,7 +187,67 @@ int UpdateCreator::getCurrentVersion()
 
     QJsonObject json = jsonDoc.object();
 
+    reply->deleteLater();
+    loop.deleteLater();
+
     return json["version"].toInt();
+}
+
+void UpdateCreator::uploadFileToCDN(QString name, QString filePath)
+{
+    QUrl url = QUrl(ui->UploadLinkLine->text());
+
+    QString bound = BOUND;
+
+    QHttpMultiPart* multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+
+    QHttpPart VersionPart;
+    VersionPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"version\""));
+    VersionPart.setBody(QString::number(version).toLocal8Bit());
+
+    QHttpPart AWSPublicKeyPart;
+    AWSPublicKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"public\""));
+    AWSPublicKeyPart.setBody(ui->AWSPublicKeyLine->text().toLocal8Bit());
+
+    QHttpPart AWSPrivateKeyPart;
+    AWSPrivateKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"private\""));
+    AWSPrivateKeyPart.setBody(ui->AWSPrivateKeyLine->text().toLocal8Bit());
+
+    QHttpPart BucketPart;
+    BucketPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"bucket\""));
+    BucketPart.setBody(ui->BucketNameLine->text().toLocal8Bit());
+
+    QHttpPart PathPart;
+    PathPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"path\""));
+    PathPart.setBody(name.toLocal8Bit());
+
+    QHttpPart FilePart;
+    FilePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+    FilePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"file\" filename=\""+ name + "\""));
+
+    QFile* file = new QFile(filePath);
+    file->open(QIODevice::ReadOnly);
+    FilePart.setBodyDevice(file);
+    file->setParent(multiPart);
+
+    multiPart->append(VersionPart);
+    multiPart->append(AWSPublicKeyPart);
+    multiPart->append(AWSPrivateKeyPart);
+    multiPart->append(BucketPart);
+    multiPart->append(PathPart);
+    multiPart->append(FilePart);
+
+    QNetworkRequest request(url);
+    QNetworkReply* reply = networkManager->post(request, multiPart);
+    multiPart->setParent(reply);
+
+    QEventLoop loop;
+    connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+    loop.exec();
+
+    qDebug() << reply->readAll();
+    reply->deleteLater();
+    loop.deleteLater();
 }
 
 void UpdateCreator::uploadFileToCDN(QByteArray data)
