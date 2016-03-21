@@ -30,7 +30,7 @@ private:
     QFileSystemModel* model;
 
     int getCurrentVersion();
-    QJsonArray generateFileTree(QDir dir, QString prefix, int& i);
+    QJsonArray generateFileTree(QDir dir, int& i);
     QByteArray buildPostRequest(QString name, QByteArray fileData);
 
 private slots:

@@ -99,9 +99,9 @@ void UpdateCreator::onClickDeployUpdateButton()
     updateJson["version"] = version;
     infoJson["version"]   = version;
 
-    updateJson["common"] = generateFileTree(dirCommon, "common/", i);
-    updateJson["win"] = generateFileTree(dirWin, "win/", i);
-    updateJson["mac"] = generateFileTree(dirMac, "mac/", i);
+    updateJson["common"] = generateFileTree(dirCommon, i);
+    updateJson["win"] = generateFileTree(dirWin, i);
+    updateJson["mac"] = generateFileTree(dirMac, i);
 
     QJsonObject prefixObject;
     prefixObject["win"] = ui->WindowsPrefixLine->text();
@@ -173,14 +173,11 @@ int UpdateCreator::getCurrentVersion()
     return json["version"].toInt();
 }
 
-QJsonArray UpdateCreator::generateFileTree(QDir dir, QString prefix, int &i)
+QJsonArray UpdateCreator::generateFileTree(QDir dir, int &i)
 {
     QJsonArray tree;
-
     QString dirPath = dir.absolutePath();
-
-    //QDirIterator it(dir);
-    QDirIterator it(dirPath, QStringList() << "*.*", QDir::Files, QDirIterator::Subdirectories);
+    QDirIterator it(dirPath, QStringList() << "*", QDir::Files, QDirIterator::Subdirectories);
 
     while (it.hasNext())
     {
@@ -204,7 +201,6 @@ QJsonArray UpdateCreator::generateFileTree(QDir dir, QString prefix, int &i)
         fileName.remove(dirPath + "/");
 
         fileObject["name"] = fileName;
-        fileObject["url"]  = prefix + fileName;
         fileObject["md5"]  = md5;
 
         tree.append(fileObject);
