@@ -6,6 +6,8 @@
 #include <QByteArray>
 #include <QNetworkAccessManager>
 #include <QFileSystemModel>
+#include <QDir>
+#include <QJsonArray>
 
 namespace Ui {
 class UpdateCreator;
@@ -22,15 +24,14 @@ public:
 private:
     Ui::UpdateCreator* ui;
     QSettings* settings;
-    int fileCount = 0;
-    int version = 0;
-
-    int getCurrentVersion();
-    void uploadFileToCDN(QString name, QString filePath);
-    void uploadFileToCDN(QByteArray data);
-    QByteArray buildPostRequest(QString name, QByteArray fileData);
+    int fileCount;
+    int version;
     QNetworkAccessManager* networkManager;
     QFileSystemModel* model;
+
+    int getCurrentVersion();
+    QJsonArray generateFileTree(QDir dir, QString prefix, int& i);
+    QByteArray buildPostRequest(QString name, QByteArray fileData);
 
 private slots:
     void onClickBrowseUpdatePathButton();

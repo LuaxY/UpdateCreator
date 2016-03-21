@@ -6,7 +6,6 @@
 #include <QMessageBox>
 #include <QCryptographicHash>
 #include <QJsonObject>
-#include <QJsonArray>
 #include <QJsonDocument>
 #include <QNetworkRequest>
 #include <QNetworkReply>
@@ -15,12 +14,11 @@
 
 #include <QDebug>
 
-#define BOUND "margin"
-#define VERSION 0
-
 UpdateCreator::UpdateCreator(QWidget *parent) :
     QWidget(parent),
-    ui(new Ui::UpdateCreator)
+    ui(new Ui::UpdateCreator),
+    fileCount(0),
+    version(0)
 {
     ui->setupUi(this);
 
@@ -33,12 +31,9 @@ UpdateCreator::UpdateCreator(QWidget *parent) :
     settings = new QSettings("config.ini", QSettings::IniFormat);
 
     ui->CDNLinkLine->setText(settings->value("updates/cdn").toString());
-    ui->UploadLinkLine->setText(settings->value("updates/upload").toString());
-    ui->BucketNameLine->setText(settings->value("updates/bucket").toString());
     ui->ChannelComboBox->setCurrentText(settings->value("updates/channel").toString());
-
-    ui->AWSPublicKeyLine->setText(settings->value("aws/public").toString());
-    ui->AWSPrivateKeyLine->setText(settings->value("aws/private").toString());
+    ui->WindowsPrefixLine->setText(settings->value("prefix/win").toString());
+    ui->MacPrefixLine->setText(settings->value("prefix/mac").toString());
 
     version = getCurrentVersion();
 }
@@ -73,75 +68,64 @@ void UpdateCreator::onClickBrowseUpdatePathButton()
 
 void UpdateCreator::onClickDeployUpdateButton()
 {
-    QString dir = ui->UpdateDirectoryPathLine->text();
+    QString dirPath = ui->UpdateDirectoryPathLine->text();
 
-    if (dir == "")
+    if (dirPath == "")
     {
         QMessageBox::warning(this, "Invalid update directory", "Please select valid update directory");
         return;
     }
 
+    QDir dirCommon(dirPath + "/common");
+    QDir dirWin(dirPath + "/win");
+    QDir dirMac(dirPath + "/mac");
+
+    if (!dirCommon.exists() || !dirWin.exists() || !dirMac.exists())
+    {
+        QMessageBox::warning(this, "Invalid update directory", "Please create 'common', 'win' and 'mac' subfolder.");
+        return;
+    }
+
     ui->DeployUpdateButton->setEnabled(false);
 
-    QDirIterator it(dir, QStringList() << "*.*", QDir::Files, QDirIterator::Subdirectories);
-
     QJsonObject updateJson;
+    QJsonObject infoJson;
     QJsonArray files;
+    int i = 0;
 
     version = getCurrentVersion();
     version++;
 
     updateJson["version"] = version;
+    infoJson["version"]   = version;
 
-    int i = 0;
+    updateJson["common"] = generateFileTree(dirCommon, "common/", i);
+    updateJson["win"] = generateFileTree(dirWin, "win/", i);
+    updateJson["mac"] = generateFileTree(dirMac, "mac/", i);
 
-    while (it.hasNext())
-    {
-        QString path = it.next();
-        QFile file(path);
+    QJsonObject prefixObject;
+    prefixObject["win"] = ui->WindowsPrefixLine->text();
+    prefixObject["mac"] = ui->MacPrefixLine->text();
+    updateJson["prefix"] = prefixObject;
 
-        if(!file.open(QIODevice::ReadOnly))
-        {
-            continue;
-        }
-
-        QCryptographicHash hash(QCryptographicHash::Md5);
-        QByteArray data = file.readAll();
-        hash.addData(data);
-        file.close();
-
-        QString fileName = path;
-        QString md5 = hash.result().toHex().data();
-        QJsonObject fileObject;
-
-        fileName.remove(dir + "/");
-
-        fileObject["name"] = fileName;
-        fileObject["md5"] = md5;
-
-        files.append(fileObject);
-
-        qDebug() << fileName;
-
-        //uploadFileToCDN(QString("%1/files/%2").arg(version).arg(fileName), path);
-        //uploadFileToCDN(buildPostRequest(QString("%1/files/%2").arg(version).arg(fileName), data));
-
-        i++;
-        ui->ProcessProgressBar->setValue(i * 100 / fileCount);
-    }
-
-    updateJson["files"] = files;
-
+    // Generate update.json
+    QFile updateFile("update.json");
     QJsonDocument updateDoc(updateJson);
-    uploadFileToCDN(buildPostRequest(QString("%1/update.json").arg(version), updateDoc.toJson()));
+
+    updateFile.open(QIODevice::WriteOnly);
+    updateFile.write(updateDoc.toJson());
+    updateFile.close();
 
     i++;
     ui->ProcessProgressBar->setValue(i * 100 / fileCount);
 
-    QJsonObject infoJson;
-    infoJson["version"] = version;
+    // Generate info.json
+    QFile infoFile("info.json");
     QJsonDocument infoDoc(infoJson);
-    //uploadFileToCDN(buildPostRequest("info.json", infoDoc.toJson()));
+
+    infoFile.open(QIODevice::WriteOnly);
+    infoFile.write(infoDoc.toJson());
+    infoFile.close();
 
     i++;
     ui->ProcessProgressBar->setValue(i * 100 / fileCount);
@@ -154,13 +138,9 @@ void UpdateCreator::onClickApplyConfigurationButton()
     version = getCurrentVersion();
 
     settings->setValue("updates/cdn",     ui->CDNLinkLine->text());
-    settings->setValue("updates/upload",  ui->UploadLinkLine->text());
-    settings->setValue("updates/bucket",  ui->BucketNameLine->text());
     settings->setValue("updates/channel", ui->ChannelComboBox->currentText());
-
-    settings->setValue("aws/public",  ui->AWSPublicKeyLine->text());
-    settings->setValue("aws/private", ui->AWSPrivateKeyLine->text());
-
+    settings->setValue("prefix/win",      ui->WindowsPrefixLine->text());
+    settings->setValue("prefix/mac",      ui->MacPrefixLine->text());
     settings->sync();
 
     QMessageBox::information(this, "Configuration saved", "Configuration was saved in config.ini file");
@@ -193,124 +173,47 @@ int UpdateCreator::getCurrentVersion()
     return json["version"].toInt();
 }
 
-void UpdateCreator::uploadFileToCDN(QString name, QString filePath)
+QJsonArray UpdateCreator::generateFileTree(QDir dir, QString prefix, int &i)
 {
-    QUrl url = QUrl(ui->UploadLinkLine->text());
+    QJsonArray tree;
 
-    QString bound = BOUND;
+    QString dirPath = dir.absolutePath();
 
-    QHttpMultiPart* multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+    //QDirIterator it(dir);
+    QDirIterator it(dirPath, QStringList() << "*.*", QDir::Files, QDirIterator::Subdirectories);
 
-    QHttpPart VersionPart;
-    VersionPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"version\""));
-    VersionPart.setBody(QString::number(version).toLocal8Bit());
+    while (it.hasNext())
+    {
+        QString path = it.next();
+        QFile file(path);
 
-    QHttpPart AWSPublicKeyPart;
-    AWSPublicKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"public\""));
-    AWSPublicKeyPart.setBody(ui->AWSPublicKeyLine->text().toLocal8Bit());
+        if(!file.open(QIODevice::ReadOnly))
+        {
+            continue;
+        }
 
-    QHttpPart AWSPrivateKeyPart;
-    AWSPrivateKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"private\""));
-    AWSPrivateKeyPart.setBody(ui->AWSPrivateKeyLine->text().toLocal8Bit());
+        QCryptographicHash hash(QCryptographicHash::Md5);
+        QByteArray data = file.readAll();
+        hash.addData(data);
+        file.close();
 
-    QHttpPart BucketPart;
-    BucketPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"bucket\""));
-    BucketPart.setBody(ui->BucketNameLine->text().toLocal8Bit());
+        QString fileName = path;
+        QString md5 = hash.result().toHex().data();
+        QJsonObject fileObject;
 
-    QHttpPart PathPart;
-    PathPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"path\""));
-    PathPart.setBody(name.toLocal8Bit());
+        fileName.remove(dirPath + "/");
 
-    QHttpPart FilePart;
-    FilePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
-    FilePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"file\" filename=\""+ name + "\""));
+        fileObject["name"] = fileName;
+        fileObject["url"]  = prefix + fileName;
+        fileObject["md5"]  = md5;
 
-    QFile* file = new QFile(filePath);
-    file->open(QIODevice::ReadOnly);
-    FilePart.setBodyDevice(file);
-    file->setParent(multiPart);
+        tree.append(fileObject);
 
-    multiPart->append(VersionPart);
-    multiPart->append(AWSPublicKeyPart);
-    multiPart->append(AWSPrivateKeyPart);
-    multiPart->append(BucketPart);
-    multiPart->append(PathPart);
-    multiPart->append(FilePart);
+        qDebug() << fileName;
 
-    QNetworkRequest request(url);
-    QNetworkReply* reply = networkManager->post(request, multiPart);
-    multiPart->setParent(reply);
+        i++;
+        ui->ProcessProgressBar->setValue(i * 100 / fileCount);
+    }
 
-    QEventLoop loop;
-    connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-    loop.exec();
-
-    qDebug() << reply->readAll();
-    reply->deleteLater();
-    loop.deleteLater();
-}
-
-void UpdateCreator::uploadFileToCDN(QByteArray data)
-{
-    QUrl url = QUrl(ui->UploadLinkLine->text());
-    QNetworkAccessManager* networkManager = new QNetworkAccessManager(this);
-
-    QString bound = BOUND;
-
-    QNetworkRequest request(url);
-    request.setRawHeader(QByteArray("Content-Type"), QByteArray("multipart/form-data; boundary=" + bound.toLocal8Bit()));
-    request.setRawHeader(QByteArray("Content-Length"), QString::number(data.length()).toLocal8Bit());
-
-    QNetworkReply* reply = networkManager->post(request, data);
-
-    QEventLoop loop;
-    connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-    loop.exec();
-}
-
-QByteArray UpdateCreator::buildPostRequest(QString name, QByteArray fileData)
-{
-    QString bound = BOUND;
-    QByteArray data;
-
-    // Version
-    data.append("--" + bound + "\r\n");
-    data.append("Content-Disposition: form-data; name=\"version\"\r\n\r\n");
-    data.append(QString::number(version) + "\r\n");
-
-    // AWS Public Key
-    data.append("--" + bound + "\r\n");
-    data.append("Content-Disposition: form-data; name=\"public\"\r\n\r\n");
-    data.append(ui->AWSPublicKeyLine->text());
-    data.append("\r\n");
-
-    // AWS Private Key
-    data.append("--" + bound + "\r\n");
-    data.append("Content-Disposition: form-data; name=\"private\"\r\n\r\n");
-    data.append(ui->AWSPrivateKeyLine->text());
-    data.append("\r\n");
-
-    // Bucket name
-    data.append("--" + bound + "\r\n");
-    data.append("Content-Disposition: form-data; name=\"bucket\"\r\n\r\n");
-    data.append(ui->BucketNameLine->text());
-    data.append("\r\n");
-
-    // File name
-    data.append("--" + bound + "\r\n");
-    data.append("Content-Disposition: form-data; name=\"path\"\r\n\r\n");
-    data.append(name);
-    data.append("\r\n");
-
-    // File
-    data.append("--" + bound + "\r\n");
-    data.append("Content-Disposition: form-data; name=\"file\"; filename=\"");
-    data.append(name);
-    data.append("\"\r\n");
-    data.append("Content-Type: application/octet-stream\r\n\r\n");
-    data.append(fileData);
-    data.append("\r\n");
-    data.append("--" + bound + "--\r\n");
-
-    return data;
+    return tree;
 }

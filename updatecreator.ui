@@ -23,7 +23,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>1</number>
+    <number>2</number>
    </property>
    <widget class="QWidget" name="tabSummary">
     <attribute name="title">
@@ -110,7 +110,7 @@
        <x>10</x>
        <y>10</y>
        <width>331</width>
-       <height>125</height>
+       <height>81</height>
       </rect>
      </property>
      <property name="title">
@@ -122,10 +122,13 @@
         <x>10</x>
         <y>20</y>
         <width>311</width>
-        <height>100</height>
+        <height>51</height>
        </rect>
       </property>
       <layout class="QFormLayout" name="formLayout">
+       <property name="fieldGrowthPolicy">
+        <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+       </property>
        <item row="0" column="0">
         <widget class="QLabel" name="label">
          <property name="text">
@@ -141,27 +144,13 @@
         </widget>
        </item>
        <item row="1" column="0">
-        <widget class="QLabel" name="label_6">
-         <property name="text">
-          <string>Upload :</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QLineEdit" name="UploadLinkLine">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
         <widget class="QLabel" name="label_2">
          <property name="text">
           <string>Channel :</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
+       <item row="1" column="1">
         <widget class="QComboBox" name="ChannelComboBox">
          <item>
           <property name="text">
@@ -180,30 +169,33 @@
          </item>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="label_5">
-         <property name="text">
-          <string>Bucket :</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLineEdit" name="BucketNameLine"/>
-       </item>
       </layout>
      </widget>
     </widget>
-    <widget class="QGroupBox" name="AWSCredentialsGroup">
+    <widget class="QPushButton" name="ApplyConfigurationButton">
+     <property name="geometry">
+      <rect>
+       <x>267</x>
+       <y>190</y>
+       <width>75</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Apply</string>
+     </property>
+    </widget>
+    <widget class="QGroupBox" name="groupBox">
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>140</y>
+       <y>100</y>
        <width>331</width>
        <height>81</height>
       </rect>
      </property>
      <property name="title">
-      <string>AWS Credentials</string>
+      <string>Prefix</string>
      </property>
      <widget class="QWidget" name="formLayoutWidget_2">
       <property name="geometry">
@@ -216,48 +208,35 @@
       </property>
       <layout class="QFormLayout" name="formLayout_2">
        <item row="0" column="0">
-        <widget class="QLabel" name="label_7">
+        <widget class="QLabel" name="label_5">
          <property name="text">
-          <string>Public Key :</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_8">
-         <property name="text">
-          <string>Private Key :</string>
+          <string>Windows :</string>
          </property>
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="AWSPublicKeyLine">
+        <widget class="QLineEdit" name="WindowsPrefixLine">
          <property name="text">
-          <string/>
+          <string>app/</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_6">
+         <property name="text">
+          <string>MacOS X :</string>
          </property>
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QLineEdit" name="AWSPrivateKeyLine">
+        <widget class="QLineEdit" name="MacPrefixLine">
          <property name="text">
-          <string/>
+          <string>Dofus.app/Contents/Ressources/</string>
          </property>
         </widget>
        </item>
       </layout>
      </widget>
-    </widget>
-    <widget class="QPushButton" name="ApplyConfigurationButton">
-     <property name="geometry">
-      <rect>
-       <x>267</x>
-       <y>224</y>
-       <width>75</width>
-       <height>23</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Apply</string>
-     </property>
     </widget>
    </widget>
   </widget>
